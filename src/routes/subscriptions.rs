@@ -1,4 +1,4 @@
-use actix_web::{dev::Server, get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 
 #[derive(serde::Deserialize)]
 struct Subscription {

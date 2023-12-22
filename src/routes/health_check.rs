@@ -1,6 +1,6 @@
-use actix_web::{dev::Server, get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, HttpResponse, Responder};
 
 #[get("/health_check")]
-async fn health_check() -> impl Responder {
+pub async fn health_check() -> impl Responder {
     HttpResponse::Ok()
 }
