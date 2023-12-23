@@ -95,8 +95,7 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &Databasettings) -> PgPool {
-    println!("{:?}", &config.connection_string_without_db());
-    let mut connection = PgConnection::connect("postgres://krishna:krishna296@localhost:5432/")
+    let mut connection = PgConnection::connect(&config.connection_string_without_db())
         .await
         .expect("connection failed");
 
