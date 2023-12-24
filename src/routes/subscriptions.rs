@@ -11,6 +11,10 @@ struct Subscription {
 
 #[post("/subscription")]
 async fn subscribe(form: web::Form<Subscription>, connection: web::Data<PgPool>) -> HttpResponse {
+    let request_id = Uuid::new_v4();
+    let req_span = tracing::info_span!("request_id -> saving new subscriber", %request_id);
+    let _req_span_guard = req_span.enter();
+
     match sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -24,9 +28,16 @@ async fn subscribe(form: web::Form<Subscription>, connection: web::Data<PgPool>)
     .execute(connection.get_ref())
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
+        Ok(_) => {
+            tracing::info_span!("request_id -> saved subscriber", %request_id);
+            HttpResponse::Ok().finish()
+        }
         Err(e) => {
-            println!("query failed {}", e);
+            tracing::error_span!(
+                "srequest_id -> saving subscriber failed: {:?}",
+                %request_id,
+                error = %e
+            );
             HttpResponse::InternalServerError().finish()
         }
     }
