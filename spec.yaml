@@ -1,3 +1,5 @@
+features:
+  - buildpack-stack=ubuntu-22
 name: zero2prod
 region: syd
 services:
