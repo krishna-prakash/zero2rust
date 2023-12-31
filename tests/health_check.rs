@@ -28,7 +28,7 @@ async fn subscriber_returns_200_for_valid_post_data() {
     let app = spawn_app().await;
 
     let client = reqwest::Client::new();
-    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    let body = "name=krishna&email=krish2cric%40gmail.com";
     let response = client
         .post(&format!("http://{}/subscription", &app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -44,8 +44,8 @@ async fn subscriber_returns_200_for_valid_post_data() {
         .await
         .expect("query failed");
 
-    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
-    assert_eq!(saved.name, "le guin");
+    assert_eq!(saved.email, "krish2cric@gmail.com");
+    assert_eq!(saved.name, "krishna");
 }
 
 #[actix_web::test]
