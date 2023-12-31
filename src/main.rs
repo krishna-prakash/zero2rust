@@ -21,12 +21,12 @@ async fn main() -> std::io::Result<()> {
         configuration.application.host, configuration.application.port
     );
     let listner = TcpListener::bind(address)?;
-
     // database connection
-    let connection_string = configuration.database.connection_string();
+    let connection_string = configuration.database.with_db();
+
     let connection = PgPoolOptions::new()
-        .acquire_timeout(std::time::Duration::from_secs(2))
-        .connect_lazy(&connection_string)
-        .expect("database connection failed");
+        .acquire_timeout(std::time::Duration::from_secs(20))
+        .connect_lazy_with(connection_string);
+
     run(listner, connection)?.await
 }
