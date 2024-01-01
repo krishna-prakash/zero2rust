@@ -1,8 +1,9 @@
 use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
-use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
+
+use crate::domain::{NewSubscriber, SubscriberName};
 
 #[derive(serde::Deserialize)]
 struct Subscription {
@@ -10,28 +11,15 @@ struct Subscription {
     name: String,
 }
 
-fn is_valid_name(s: &str) -> bool {
-    let is_empty_or_whitespace = s.trim().is_empty();
-
-    let is_too_long = s.graphemes(true).count() > 256;
-
-    let forbidden_characters = ['(', ')', '/', '"', '<', '>', '\\', '{', '}'];
-    let contains_forbidden_characters = s.chars().any(|g| forbidden_characters.contains(&g));
-    println!(
-        "{} {} {}",
-        is_empty_or_whitespace, is_too_long, contains_forbidden_characters,
-    );
-    !(is_empty_or_whitespace || is_too_long || contains_forbidden_characters)
-}
-
 #[tracing::instrument(name = "Adding new subscriber", skip(form, connection))]
 #[post("/subscription")]
 async fn subscribe(form: web::Form<Subscription>, connection: web::Data<PgPool>) -> HttpResponse {
-    if !is_valid_name(&form.name) {
-        return HttpResponse::BadRequest().finish();
-    }
+    let new_subscriber = NewSubscriber {
+        name: SubscriberName::parse(form.0.name),
+        email: form.0.email,
+    };
 
-    match insert_subscriber(&form, &connection).await {
+    match insert_subscriber(&new_subscriber, &connection).await {
         Ok(_) => {
             tracing::info_span!("saved subscriber");
             HttpResponse::Ok().finish()
@@ -45,7 +33,7 @@ async fn subscribe(form: web::Form<Subscription>, connection: web::Data<PgPool>)
 
 #[tracing::instrument(name = "inserting subscriber", skip(form, connection))]
 
-async fn insert_subscriber(form: &Subscription, connection: &PgPool) -> Result<(), sqlx::Error> {
+async fn insert_subscriber(form: &NewSubscriber, connection: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -53,7 +41,7 @@ async fn insert_subscriber(form: &Subscription, connection: &PgPool) -> Result<(
     "#,
         Uuid::new_v4(),
         form.email,
-        form.name,
+        form.name.as_ref(),
         Utc::now()
     )
     .execute(connection)
