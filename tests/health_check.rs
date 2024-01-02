@@ -56,7 +56,8 @@ async fn subscriber_returns_400_for_invalid_post_data() {
 
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
-        ("email=ursula_le_guin%40gmail.com", "missing the name"),
+        ("name=krishna&email=", "missing the email"),
+        ("email=krish2cric@gmail.com", "missing the name"),
         ("", "missing both name and email"),
     ];
 
