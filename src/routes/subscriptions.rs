@@ -3,28 +3,15 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
-
-#[derive(serde::Deserialize)]
-struct Subscription {
-    email: String,
-    name: String,
-}
+use crate::domain::{NewSubscriber, Subscription};
 
 #[tracing::instrument(name = "Adding new subscriber", skip(form, connection))]
 #[post("/subscription")]
 async fn subscribe(form: web::Form<Subscription>, connection: web::Data<PgPool>) -> HttpResponse {
-    let name = match SubscriberName::parse(form.0.name) {
-        Ok(name) => name,
+    let new_subscriber = match form.0.try_into() {
+        Ok(form) => form,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-
-    let email = match SubscriberEmail::parse(form.0.email) {
-        Ok(email) => email,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-
-    let new_subscriber = NewSubscriber { name, email };
 
     match insert_subscriber(&new_subscriber, &connection).await {
         Ok(_) => {
