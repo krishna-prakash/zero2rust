@@ -6,10 +6,13 @@ use sqlx::{
     ConnectOptions,
 };
 
+use crate::domain::SubscriberEmail;
+
 #[derive(Deserialize, Debug)]
 pub struct Settings {
     pub database: Databasettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
 #[derive(Deserialize, Debug)]
@@ -28,6 +31,24 @@ pub struct Databasettings {
     pub host: String,
     pub database_name: String,
     pub require_ssl: bool,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct EmailClientSettings {
+    pub auth_token: Secret<String>,
+    pub base_url: String,
+    pub sender_email: String,
+    pub timeout_milliseconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
+
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
 }
 
 pub enum Environment {

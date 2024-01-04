@@ -6,3 +6,8 @@ database:
   username: "krishna"
   password: "krishna296"
   database_name: "newsletter"
+email_client:
+  auth_token: "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"
+  base_url: "https://api.brevo.com/v3/smtp"
+  sender_email: "krishna@example.com"
+  timeout_milliseconds: 10000
