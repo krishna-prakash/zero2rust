@@ -1,6 +1,5 @@
 use std::net::TcpListener;
 
-use actix_web::{self};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
@@ -10,74 +9,9 @@ use zero2prod::{
     telemetry::{get_subscriber, init_subscriber},
 };
 
-#[actix_web::test]
-async fn health_check_works() {
-    let app = spawn_app().await;
-    let client = reqwest::Client::new();
-    let response = client
-        .get(&format!("http://{}/health_check", &app.address))
-        .send()
-        .await
-        .expect("failed to execute request");
-
-    assert!(response.status().is_success());
-    assert_eq!(Some(0), response.content_length());
-}
-
-#[actix_web::test]
-async fn subscriber_returns_200_for_valid_post_data() {
-    let app = spawn_app().await;
-
-    let client = reqwest::Client::new();
-    let body = "name=krishna&email=krish2cric%40gmail.com";
-    let response = client
-        .post(&format!("http://{}/subscription", &app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(200, response.status().as_u16());
-
-    let saved = sqlx::query!("SELECT email, name FROM subscriptions")
-        .fetch_one(&app.db_pool)
-        .await
-        .expect("query failed");
-
-    assert_eq!(saved.email, "krish2cric@gmail.com");
-    assert_eq!(saved.name, "krishna");
-}
-
-#[actix_web::test]
-async fn subscriber_returns_400_for_invalid_post_data() {
-    let app = spawn_app().await;
-
-    let client = reqwest::Client::new();
-
-    let test_cases = vec![
-        ("name=le%20guin", "missing the email"),
-        ("name=krishna&email=", "missing the email"),
-        ("email=krish2cric@gmail.com", "missing the name"),
-        ("", "missing both name and email"),
-    ];
-
-    for (invalid_data, error) in test_cases {
-        let response = client
-            .post(&format!("http://{}/subscription", &app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_data)
-            .send()
-            .await
-            .expect("Failed to execute request");
-
-        assert_eq!(400, response.status().as_u16(), "API error {}", error);
-    }
-}
-
 pub struct TestApp {
-    address: String,
-    db_pool: PgPool,
+    pub address: String,
+    pub db_pool: PgPool,
 }
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -93,7 +27,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     }
 });
 
-async fn spawn_app() -> TestApp {
+pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
     let listner = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
