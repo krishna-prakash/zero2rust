@@ -8,21 +8,21 @@ use sqlx::{
 
 use crate::domain::SubscriberEmail;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Settings {
     pub database: Databasettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Databasettings {
     pub username: String,
     pub password: Secret<String>,
@@ -33,7 +33,7 @@ pub struct Databasettings {
     pub require_ssl: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct EmailClientSettings {
     pub auth_token: Secret<String>,
     pub base_url: String,
