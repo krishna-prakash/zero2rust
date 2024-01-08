@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::domain::SubscriberEmail;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EmailClient {
     auth_token: Secret<String>,
     http_client: Client,

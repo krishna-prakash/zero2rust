@@ -1,3 +1,8 @@
+use wiremock::{
+    matchers::{method, path},
+    Mock, ResponseTemplate,
+};
+
 use crate::helpers::spawn_app;
 
 #[actix_web::test]
@@ -5,6 +10,10 @@ async fn subscriber_returns_200_for_valid_post_data() {
     let app = spawn_app().await;
 
     let body = "name=krishna&email=krish2cric%40gmail.com";
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
     let response = app.post_subscription(body.into()).await;
     assert_eq!(200, response.status().as_u16());
 
@@ -15,6 +24,27 @@ async fn subscriber_returns_200_for_valid_post_data() {
 
     assert_eq!(saved.email, "krish2cric@gmail.com");
     assert_eq!(saved.name, "krishna");
+}
+
+#[actix_web::test]
+async fn subscriber_valid_post_data_saved() {
+    let app = spawn_app().await;
+
+    let body = "name=krishna&email=krish2cric%40gmail.com";
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+    let _ = app.post_subscription(body.into()).await;
+
+    let saved = sqlx::query!("SELECT email, name, status FROM subscriptions")
+        .fetch_one(&app.db_pool)
+        .await
+        .expect("query failed");
+
+    assert_eq!(saved.email, "krish2cric@gmail.com");
+    assert_eq!(saved.name, "krishna");
+    assert_eq!(saved.status, "pending_confirmation");
 }
 
 #[actix_web::test]
@@ -32,4 +62,33 @@ async fn subscriber_returns_400_for_invalid_post_data() {
         let response = app.post_subscription(invalid_data.into()).await;
         assert_eq!(400, response.status().as_u16(), "API error {}", error);
     }
+}
+
+#[actix_web::test]
+async fn subscribe_sends_email_for_valid_data() {
+    let app = spawn_app().await;
+
+    let body = "name=krishna&email=krish2cric%40gmail.com";
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+
+    app.post_subscription(body.into()).await;
+
+    let email_req = &app.email_server.received_requests().await.unwrap()[0];
+
+    let body: serde_json::Value = serde_json::from_slice(&email_req.body).unwrap();
+    let get_link = |s: &str| {
+        let links: Vec<_> = linkify::LinkFinder::new()
+            .links(s)
+            .filter(|l| *l.kind() == linkify::LinkKind::Url)
+            .collect();
+
+        assert_eq!(links.len(), 1);
+        links[0].as_str().to_owned()
+    };
+
+    let _ = get_link(&body["htmlContent"].as_str().unwrap());
 }
