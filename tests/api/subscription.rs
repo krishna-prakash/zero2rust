@@ -1,3 +1,4 @@
+use reqwest::Url;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
@@ -90,5 +91,13 @@ async fn subscribe_sends_email_for_valid_data() {
         links[0].as_str().to_owned()
     };
 
-    let _ = get_link(&body["htmlContent"].as_str().unwrap());
+    let raw_confirmation_link = get_link(&body["htmlContent"].as_str().unwrap());
+    let mut confirmation_link = Url::parse(&raw_confirmation_link).unwrap();
+
+    assert_eq!(confirmation_link.host_str().unwrap(), "localhost");
+    confirmation_link.set_port(Some(app.port)).unwrap();
+
+    let response = reqwest::get(confirmation_link).await.unwrap();
+
+    assert_eq!(response.status().as_u16(), 200);
 }

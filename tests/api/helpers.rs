@@ -11,6 +11,7 @@ use zero2prod::{
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    pub port: u16,
     pub email_server: MockServer,
 }
 
@@ -56,11 +57,12 @@ pub async fn spawn_app() -> TestApp {
     let server = Application::build(configuration.clone())
         .await
         .expect("server build failed");
-    let address = format!("127.0.0.1:{}", server.port());
+    let port = server.port();
     let _ = tokio::spawn(server.run_until_stopped());
 
     TestApp {
-        address,
+        address: format!("127.0.0.1:{}", port),
+        port,
         db_pool: get_connection_pool(&configuration.database),
         email_server,
     }
