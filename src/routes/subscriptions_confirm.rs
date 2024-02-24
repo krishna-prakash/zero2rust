@@ -8,7 +8,7 @@ pub struct Parameters {
     subscription_token: String,
 }
 
-#[tracing::instrument(name = "confirm a pending subscriber", skip(parameters, connection))]
+#[tracing::instrument(name = "confirm a pending subscriber", skip(parameters))]
 #[get("/subscriptions/confirm")]
 pub async fn confirm(
     parameters: web::Query<Parameters>,
@@ -33,37 +33,40 @@ pub async fn confirm(
     }
 }
 
-#[tracing::instrument(name = "confirm subscriber", skip(connection, subscriber_id))]
-async fn confirm_subscriber(connection: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
+#[tracing::instrument(name = "Mark subscriber as confirmed", skip(connection, subscriber_id))]
+pub async fn confirm_subscriber(
+    connection: &PgPool,
+    subscriber_id: Uuid,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        r#"UPDATE subscriptions SET status = 'confirmed' WHERE id=$1"#,
+        r#"UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"#,
         subscriber_id
     )
     .execute(connection)
     .await
     .map_err(|e| {
-        tracing::error!("Failed to execute query: {}", e);
+        tracing::error!("falied to execute update query: {}", e);
         e
     })?;
     Ok(())
 }
 
 #[tracing::instrument(
-    name = "get subscriber from token",
+    name = "get subscriber id from token",
     skip(connection, subscription_token)
 )]
-async fn get_subscriber_id_from_token(
+pub async fn get_subscriber_id_from_token(
     connection: &PgPool,
     subscription_token: &str,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     let result = sqlx::query!(
-        r#"SELECT subscriber_id FROM subscription_tokens WHERE subscription_token=$1"#,
+        r#"SELECT subscriber_id FROM subscription_tokens WHERE subscription_token = $1"#,
         subscription_token
     )
     .fetch_optional(connection)
     .await
     .map_err(|e| {
-        tracing::error!("failed to execute query: {}", e);
+        tracing::error!("falied to execute query {}", e);
         e
     })?;
     Ok(result.map(|r| r.subscriber_id))
