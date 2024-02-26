@@ -101,3 +101,18 @@ async fn subscribe_sends_email_for_valid_data() {
 
     assert_eq!(response.status().as_u16(), 200);
 }
+
+#[actix_web::test]
+async fn subscribe_fails_if_there_is_a_fatal_database_error() {
+    let app = spawn_app().await;
+    let body = "name=krishna&email=krish2cric%40gmail.com";
+
+    sqlx::query!("ALTER TABLE subscription_tokens DROP COLUMN subscription_token")
+        .execute(&app.db_pool)
+        .await
+        .unwrap();
+
+    let response = app.post_subscription(body.into()).await;
+
+    assert_eq!(response.status().as_u16(), 500);
+}
